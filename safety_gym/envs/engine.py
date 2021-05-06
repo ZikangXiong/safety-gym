@@ -26,6 +26,7 @@ COLOR_WALL = np.array([.5, .5, .5, 1])
 COLOR_GREMLIN = np.array([0.5, 0, 1, 1])
 COLOR_CIRCLE = np.array([0, 1, 0, 1])
 COLOR_RED = np.array([1, 0, 0, 1])
+COLOR_SUBGOAL = np.array([0, 1, 1, 0.5])
 
 # Groups are a mujoco-specific mechanism for selecting which geom objects to "see"
 # We use these for raycasting lidar, where there are different lidar types.
@@ -1415,7 +1416,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
                mode='human',
                camera_id=None,
                width=DEFAULT_WIDTH,
-               height=DEFAULT_HEIGHT
+               height=DEFAULT_HEIGHT,
+               subgoal=None
                ):
         ''' Render the environment to the screen '''
 
@@ -1423,7 +1425,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
             # Set camera if specified
             if mode == 'human':
                 self.viewer = MjViewer(self.sim)
-                self.viewer.cam.fixedcamid = -1
+                self.viewer.cam.fixedcamid = 1  # -1
                 self.viewer.cam.type = const.CAMERA_FREE
             else:
                 self.viewer = MjRenderContextOffscreen(self.sim)
@@ -1435,6 +1437,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
             self.viewer.vopt.geomgroup[:] = 1
             self._old_render_mode = mode
         self.viewer.update_sim(self.sim)
+
+        if subgoal is not None:
+            self.render_sphere(subgoal, 0.25, COLOR_SUBGOAL, alpha=.5)
 
         if camera_id is not None:
             # Update camera if desired
