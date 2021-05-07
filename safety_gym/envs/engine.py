@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from typing import Optional
 
 import gym
 import gym.spaces
@@ -41,6 +42,7 @@ GROUP_HAZARD = 3
 GROUP_VASE = 4
 GROUP_GREMLIN = 5
 GROUP_CIRCLE = 6
+GROUP_SUBGOAL = 7
 
 # Constant for origin of world
 ORIGIN_COORDINATES = np.zeros(3)
@@ -127,6 +129,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         'observe_goal_dist': False,  # Observe the distance to the goal
         'observe_goal_comp': False,  # Observe a compass vector to the goal
         'observe_goal_lidar': False,  # Observe the goal with a lidar sensor
+        'observe_subgoal_lidar': False,  # Observe the goal with a lidar sensor
         'observe_box_comp': False,  # Observe the box with a compass
         'observe_box_lidar': False,  # Observe the box with a lidar
         'observe_circle': False,  # Observe the origin with a lidar
@@ -317,6 +320,12 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.seed(self._seed)
         self.done = True
 
+        if self.observe_subgoal_lidar:
+            self._subgoal_pos = np.array([3.0, 3.0, 3.0])
+            self._previous_subgoal_dist = None
+        else:
+            self._subgoal_pos = None
+
     def parse(self, config):
         ''' Parse a config dict - see self.DEFAULT for description '''
         self.config = deepcopy(self.DEFAULT)
@@ -358,6 +367,10 @@ class Engine(gym.Env, gym.utils.EzPickle):
             return np.zeros(2)  # Only used for screenshots
         else:
             raise ValueError(f'Invalid task {self.task}')
+
+    @property
+    def subgoal_pos(self):
+        return self._subgoal_pos
 
     @property
     def box_pos(self):
@@ -452,6 +465,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
             obs_space_dict['goal_compass'] = gym.spaces.Box(-1.0, 1.0, (self.compass_shape,), dtype=np.float32)
         if self.observe_goal_lidar:
             obs_space_dict['goal_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+        if self.observe_subgoal_lidar:
+            obs_space_dict['subgoal_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.task == 'circle' and self.observe_circle:
             obs_space_dict['circle_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.observe_remaining:
@@ -709,6 +724,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                     'group': GROUP_GOAL,
                     'rgba': COLOR_GOAL * [1, 1, 1, 0.25]}  # transparent
             world_config['geoms']['goal'] = geom
+            # It seems that with current lidar setting, it does not require add subgoal here
         if self.hazards_num:
             for i in range(self.hazards_num):
                 name = f'hazard{i}'
@@ -1048,6 +1064,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
             obs['goal_compass'] = self.obs_compass(self.goal_pos)
         if self.observe_goal_lidar:
             obs['goal_lidar'] = self.obs_lidar([self.goal_pos], GROUP_GOAL)
+        if self.observe_subgoal_lidar:
+            obs['subgoal_lidar'] = self.obs_lidar([self.subgoal_pos], GROUP_SUBGOAL)
         if self.task == 'push':
             box_pos = self.box_pos
             if self.observe_box_comp:
@@ -1233,7 +1251,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         ''' Tick the buttons resampling timer '''
         self.buttons_timer = max(0, self.buttons_timer - 1)
 
-    def step(self, action):
+    def step(self, action: np.ndarray, subgoal: Optional[np.ndarray] = None):
         ''' Take a step and return observation, reward, done, and info '''
         action = np.array(action, copy=False)  # Cast to ndarray
         assert not self.done, 'Environment must be reset before stepping'
@@ -1300,6 +1318,13 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.steps += 1
         if self.steps >= self.num_steps:
             self.done = True  # Maximum number of steps in an episode reached
+
+        if subgoal is not None:
+            subgoal_dist = np.exp(-self.dist_xy(self.subgoal_pos))
+            if (subgoal != self._subgoal_pos).any():
+                self._subgoal_pos = subgoal
+                self._previous_subgoal_dist = subgoal_dist
+            info["subgoal_reward"] = subgoal_dist - self._previous_subgoal_dist
 
         return self.obs(), reward, self.done, info
 
@@ -1425,7 +1450,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
             # Set camera if specified
             if mode == 'human':
                 self.viewer = MjViewer(self.sim)
-                self.viewer.cam.fixedcamid = 1  # -1
+                self.viewer.cam.fixedcamid = -1
                 self.viewer.cam.type = const.CAMERA_FREE
             else:
                 self.viewer = MjRenderContextOffscreen(self.sim)
@@ -1439,7 +1464,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.viewer.update_sim(self.sim)
 
         if subgoal is not None:
-            self.render_sphere(subgoal, 0.25, COLOR_SUBGOAL, alpha=.5)
+            self.render_sphere(subgoal, 0.15, COLOR_SUBGOAL, alpha=.5)
 
         if camera_id is not None:
             # Update camera if desired
@@ -1459,6 +1484,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
                     self.render_lidar([self.goal_pos], COLOR_GOAL, offset, GROUP_GOAL)
                 if 'goal_compass' in self.obs_space_dict:
                     self.render_compass(self.goal_pos, COLOR_GOAL, offset)
+                offset += self.render_lidar_offset_delta
+            if 'subgoal_lidar' in self.obs_space_dict:
+                self.render_lidar([self.subgoal_pos], COLOR_SUBGOAL, offset, GROUP_SUBGOAL)
                 offset += self.render_lidar_offset_delta
             if 'buttons_lidar' in self.obs_space_dict:
                 self.render_lidar(self.buttons_pos, COLOR_BUTTON, offset, GROUP_BUTTON)

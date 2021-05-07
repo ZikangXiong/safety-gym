@@ -44,7 +44,8 @@ goal_all = {
     'walls_locations': wall,  # This should be used and length == walls_num
     'walls_size': 0.1,  # Should be fixed at fundamental size of the world
     'goal_locations': [(-1.5, 1.5)],
-    'robot_locations': [(-1.5, -1.5)]
+    'robot_locations': [(-1.5, -1.5)],
+    'observe_subgoal_lidar': True
 }
 
 # Shared among constrained envs (levels 1, 2)
@@ -66,6 +67,7 @@ goal0 = deepcopy(zero_base_dict)
 goal1 = {
     'placements_extents': [-2.0, -2.0, 2.0, 2.0],
     'hazards_num': 8,
+    'vases_num': 1
 }
 goal1.update(goal_constrained)
 
