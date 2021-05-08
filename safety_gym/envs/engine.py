@@ -24,10 +24,10 @@ COLOR_VASE = np.array([0, 1, 1, 1])
 COLOR_HAZARD = np.array([0, 0, 1, 1])
 COLOR_PILLAR = np.array([.5, .5, 1, 1])
 COLOR_WALL = np.array([.5, .5, .5, 1])
-COLOR_GREMLIN = np.array([0.5, 0, 1, 1])
+COLOR_GREMLIN = np.array([.5, 0, 1, 1])
 COLOR_CIRCLE = np.array([0, 1, 0, 1])
 COLOR_RED = np.array([1, 0, 0, 1])
-COLOR_SUBGOAL = np.array([0, 1, 1, 0.5])
+COLOR_SUBGOAL = np.array([1, 1, .5, .5])
 
 # Groups are a mujoco-specific mechanism for selecting which geom objects to "see"
 # We use these for raycasting lidar, where there are different lidar types.
@@ -1320,11 +1320,18 @@ class Engine(gym.Env, gym.utils.EzPickle):
             self.done = True  # Maximum number of steps in an episode reached
 
         if subgoal is not None:
-            subgoal_dist = np.exp(-self.dist_xy(self.subgoal_pos))
+            if subgoal.shape == (2,):
+                subgoal = np.r_[subgoal, 0]
+
+            subgoal_dist = np.exp(-self.dist_xy(subgoal))
             if (subgoal != self._subgoal_pos).any():
                 self._subgoal_pos = subgoal
                 self._previous_subgoal_dist = subgoal_dist
+
             info["subgoal_reward"] = subgoal_dist - self._previous_subgoal_dist
+            info["subgoal_done"] = subgoal_dist > 0.9
+
+            self._previous_subgoal_dist = subgoal_dist
 
         return self.obs(), reward, self.done, info
 
