@@ -321,7 +321,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.done = True
 
         if self.observe_subgoal_lidar:
-            self._subgoal_pos = np.array([3.0, 3.0, 3.0])
+            self._subgoal_pos = np.array([3.0, 3.0, -3.0])
             self._previous_subgoal_dist = None
         else:
             self._subgoal_pos = None
@@ -1324,12 +1324,16 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 subgoal = np.r_[subgoal, 0]
 
             subgoal_dist = np.exp(-self.dist_xy(subgoal))
-            if (subgoal != self._subgoal_pos).any():
+            if (subgoal != self.subgoal_pos).any():
                 self._subgoal_pos = subgoal
-                self._previous_subgoal_dist = subgoal_dist
+                info["subgoal_reward"] = 0.0
+            else:
+                info["subgoal_reward"] = subgoal_dist - self._previous_subgoal_dist
 
-            info["subgoal_reward"] = subgoal_dist - self._previous_subgoal_dist
-            info["subgoal_done"] = subgoal_dist > 0.9
+            info["subgoal_done"] = subgoal_dist > 0.8  # around radius 0.3
+
+            if info["subgoal_done"]:
+                info["subgoal_reward"] += 1.0
 
             self._previous_subgoal_dist = subgoal_dist
 
@@ -1448,9 +1452,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                mode='human',
                camera_id=None,
                width=DEFAULT_WIDTH,
-               height=DEFAULT_HEIGHT,
-               subgoal=None
-               ):
+               height=DEFAULT_HEIGHT):
         ''' Render the environment to the screen '''
 
         if self.viewer is None or mode != self._old_render_mode:
@@ -1470,8 +1472,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
             self._old_render_mode = mode
         self.viewer.update_sim(self.sim)
 
-        if subgoal is not None:
-            self.render_sphere(subgoal, 0.15, COLOR_SUBGOAL, alpha=.5)
+        if self.observe_subgoal_lidar:
+            self.render_sphere(self.subgoal_pos, 0.3, COLOR_SUBGOAL, alpha=.5)
 
         if camera_id is not None:
             # Update camera if desired
