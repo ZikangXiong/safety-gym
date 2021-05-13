@@ -1323,11 +1323,18 @@ class Engine(gym.Env, gym.utils.EzPickle):
         if self.steps >= self.num_steps:
             self.done = True  # Maximum number of steps in an episode reached
 
+        obs = self.obs()
         if subgoal is not None:
-            if subgoal.shape == (2,):
-                subgoal = np.r_[subgoal, 0]
+            if "subgoal_lidar" in self.obs_space_dict:
+                if subgoal.shape == (2,):
+                    subgoal = np.r_[subgoal, 0]
 
-            subgoal_dist = np.exp(-self.dist_xy(subgoal))
+                subgoal_dist = np.exp(-self.dist_xy(subgoal))
+            else:
+                assert hasattr(self, "state_encoder")
+                obs_embedding = self.state_encoder.encode(obs)
+                subgoal_dist = np.exp(-np.linalg.norm(obs_embedding - subgoal))
+
             if (subgoal != self.subgoal_pos).any():
                 self._subgoal_pos = subgoal
                 info["subgoal_reward"] = 0.0
@@ -1343,7 +1350,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
             self._previous_subgoal_dist = subgoal_dist
 
-        return self.obs(), reward, self.done, info
+        return obs, reward, self.done, info
 
     def reward(self):
         ''' Calculate the dense component of reward.  Call exactly once per step '''

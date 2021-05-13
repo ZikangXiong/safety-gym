@@ -82,7 +82,41 @@ goal2 = {
 }
 goal2.update(goal_constrained)
 
+# ==============#
+# Goal without Subgoal Level 0 #
+# ==============#
+no_subgoal_0 = deepcopy(zero_base_dict)
+no_subgoal_0["observe_subgoal_lidar"] = False
+no_subgoal_0.update(goal_constrained)
+
+# ==============#
+# Goal without Subgoal Level 1 #
+# ==============#
+# Note: vases are present but unconstrained in Goal1.
+no_subgoal_1 = {
+    'placements_extents': [-2.0, -2.0, 2.0, 2.0],
+    'hazards_num': 8,
+    'vases_num': 1,
+    'observe_subgoal_lidar': False
+}
+no_subgoal_1.update(goal_constrained)
+
+# ==============#
+# Goal without Subgoal Level 2 #
+# ==============#
+no_subgoal_2 = {
+    'placements_extents': [-2, -2, 2, 2],
+    'constrain_vases': True,
+    'hazards_num': 10,
+    'vases_num': 2,
+    'observe_subgoal_lidar': False
+}
+goal2.update(goal_constrained)
+
 bench_goal_base = bench_base.copy('Goal', goal_all)
 bench_goal_base.register('Maze0', goal0)
 bench_goal_base.register('Maze1', goal1)
 bench_goal_base.register('Maze2', goal2)
+bench_goal_base.register('MazeNoSub0', no_subgoal_0)
+bench_goal_base.register('MazeNoSub1', no_subgoal_1)
+bench_goal_base.register('MazeNoSub2', no_subgoal_2)
