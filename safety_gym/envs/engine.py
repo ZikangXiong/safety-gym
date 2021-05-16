@@ -320,11 +320,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.seed(self._seed)
         self.done = True
 
-        if self.observe_subgoal_lidar:
-            self._subgoal_pos = np.array([3.0, 3.0, -3.0])
-            self._previous_subgoal_dist = None
-        else:
-            self._subgoal_pos = None
+        self._subgoal_pos = np.array([3.0, 3.0, -3.0])
+        self._previous_subgoal_dist = None
 
         self.cum_subgoal_rewards = []
 
@@ -1325,15 +1322,14 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
         obs = self.obs()
         if subgoal is not None:
-            if "subgoal_lidar" in self.obs_space_dict:
+            if hasattr(self, "state_encoder"):
+                obs_embedding = self.state_encoder.encode(obs)
+                subgoal_dist = np.exp(-np.linalg.norm(obs_embedding - subgoal))
+            else:
                 if subgoal.shape == (2,):
                     subgoal = np.r_[subgoal, 0]
 
                 subgoal_dist = np.exp(-self.dist_xy(subgoal))
-            else:
-                assert hasattr(self, "state_encoder")
-                obs_embedding = self.state_encoder.encode(obs)
-                subgoal_dist = np.exp(-np.linalg.norm(obs_embedding - subgoal))
 
             if (subgoal != self.subgoal_pos).any():
                 self._subgoal_pos = subgoal
@@ -1485,8 +1481,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
             self._old_render_mode = mode
         self.viewer.update_sim(self.sim)
 
-        if self.observe_subgoal_lidar:
-            self.render_sphere(self.subgoal_pos, 0.3, COLOR_SUBGOAL, alpha=.5)
+        self.render_sphere(self.subgoal_pos, 0.3, COLOR_SUBGOAL, alpha=.5)
 
         if camera_id is not None:
             # Update camera if desired

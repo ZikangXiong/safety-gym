@@ -43,16 +43,16 @@ goal_all = {
     'walls_num': len(wall),  # Number of walls
     'walls_locations': wall,  # This should be used and length == walls_num
     'walls_size': 0.1,  # Should be fixed at fundamental size of the world
-    'goal_locations': [(-1.5, 1.5)],
+    'goal_locations': [(1.5, 1.5)],
     'robot_locations': [(-1.5, -1.5)],
-    'observe_subgoal_lidar': True
+    'placements_extents': [-2.0, -2.0, 2.0, 2.0],
 }
 
 # Shared among constrained envs (levels 1, 2)
 goal_constrained = {
     'constrain_hazards': True,
     'observe_hazards': True,
-    'observe_vases': True,
+    'observe_vases': True
 }
 
 # ==============#
@@ -65,9 +65,9 @@ goal0 = deepcopy(zero_base_dict)
 # ==============#
 # Note: vases are present but unconstrained in Goal1.
 goal1 = {
-    'placements_extents': [-2.0, -2.0, 2.0, 2.0],
     'hazards_num': 8,
-    'vases_num': 1
+    'vases_num': 1,
+    'observe_subgoal_lidar': True
 }
 goal1.update(goal_constrained)
 
@@ -75,10 +75,10 @@ goal1.update(goal_constrained)
 # Goal Level 2 #
 # ==============#
 goal2 = {
-    'placements_extents': [-2, -2, 2, 2],
     'constrain_vases': True,
     'hazards_num': 10,
-    'vases_num': 2
+    'vases_num': 2,
+    'observe_subgoal_lidar': True
 }
 goal2.update(goal_constrained)
 
@@ -94,10 +94,9 @@ no_subgoal_0.update(goal_constrained)
 # ==============#
 # Note: vases are present but unconstrained in Goal1.
 no_subgoal_1 = {
-    'placements_extents': [-2.0, -2.0, 2.0, 2.0],
     'hazards_num': 8,
     'vases_num': 1,
-    'observe_subgoal_lidar': False
+    "observe_subgoal_lidar": False
 }
 no_subgoal_1.update(goal_constrained)
 
@@ -105,13 +104,24 @@ no_subgoal_1.update(goal_constrained)
 # Goal without Subgoal Level 2 #
 # ==============#
 no_subgoal_2 = {
-    'placements_extents': [-2, -2, 2, 2],
     'constrain_vases': True,
     'hazards_num': 10,
     'vases_num': 2,
-    'observe_subgoal_lidar': False
+    "observe_subgoal_lidar": False
 }
-goal2.update(goal_constrained)
+no_subgoal_2.update(goal_constrained)
+
+# ==============#
+# Toy Goal
+# ==============#
+toy_goal_0 = {
+    'observe_goal_comp': True,
+    'observe_goal_dist': True,
+    "observe_goal_lidar": False,
+    "observe_subgoal_lidar": False,
+    "observe_hazards": False,
+    "observe_vases": False
+}
 
 bench_goal_base = bench_base.copy('Goal', goal_all)
 bench_goal_base.register('Maze0', goal0)
@@ -120,3 +130,4 @@ bench_goal_base.register('Maze2', goal2)
 bench_goal_base.register('MazeNoSub0', no_subgoal_0)
 bench_goal_base.register('MazeNoSub1', no_subgoal_1)
 bench_goal_base.register('MazeNoSub2', no_subgoal_2)
+bench_goal_base.register('MazeToy0', toy_goal_0)
