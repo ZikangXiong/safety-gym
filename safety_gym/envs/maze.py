@@ -117,6 +117,8 @@ no_subgoal_2.update(goal_constrained)
 toy_goal_0 = {
     'observe_goal_comp': True,
     'observe_goal_dist': True,
+    'observe_subgoal_comp': True,
+    'observe_subgoal_dist': True,
     "observe_goal_lidar": False,
     "observe_subgoal_lidar": False,
     "observe_hazards": False,

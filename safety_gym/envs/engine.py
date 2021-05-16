@@ -129,7 +129,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
         'observe_goal_dist': False,  # Observe the distance to the goal
         'observe_goal_comp': False,  # Observe a compass vector to the goal
         'observe_goal_lidar': False,  # Observe the goal with a lidar sensor
-        'observe_subgoal_lidar': False,  # Observe the goal with a lidar sensor
+        'observe_subgoal_dist': False,  # Observe the distance to the subgoal
+        'observe_subgoal_comp': False,  # Observe a compass vector to the subgoal
+        'observe_subgoal_lidar': False,  # Observe the subgoal with a lidar sensor
         'observe_box_comp': False,  # Observe the box with a compass
         'observe_box_lidar': False,  # Observe the box with a lidar
         'observe_circle': False,  # Observe the origin with a lidar
@@ -320,7 +322,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.seed(self._seed)
         self.done = True
 
-        self._subgoal_pos = np.array([3.0, 3.0, -3.0])
+        self._subgoal_pos = None
         self._previous_subgoal_dist = None
 
         self.cum_subgoal_rewards = []
@@ -460,8 +462,12 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 obs_space_dict['box_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.observe_goal_dist:
             obs_space_dict['goal_dist'] = gym.spaces.Box(0.0, 1.0, (1,), dtype=np.float32)
+        if self.observe_subgoal_dist:
+            obs_space_dict['subgoal_dist'] = gym.spaces.Box(0.0, 1.0, (1,), dtype=np.float32)
         if self.observe_goal_comp:
             obs_space_dict['goal_compass'] = gym.spaces.Box(-1.0, 1.0, (self.compass_shape,), dtype=np.float32)
+        if self.observe_subgoal_comp:
+            obs_space_dict['subgoal_compass'] = gym.spaces.Box(-1.0, 1.0, (self.compass_shape,), dtype=np.float32)
         if self.observe_goal_lidar:
             obs_space_dict['goal_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.observe_subgoal_lidar:
@@ -911,6 +917,13 @@ class Engine(gym.Env, gym.utils.EzPickle):
         ''' Return the distance from the robot to the goal XY position '''
         return self.dist_xy(self.goal_pos)
 
+    def dist_subgoal(self):
+        ''' Return the distance from the robot to the subgoal XY position '''
+        if self.subgoal_pos is not None:
+            return self.dist_xy(self.subgoal_pos)
+        else:
+            return np.inf
+
     def dist_box(self):
         ''' Return the distance from the robot to the box (in XY plane only) '''
         assert self.task == 'push', f'invalid task {self.task}'
@@ -954,6 +967,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
         projected into the sin/cos space we use for joints.
         (See comment on joint observation for why we do this.)
         '''
+        if pos is None:
+            return np.array([0.0, 0.0])
         pos = np.asarray(pos)
         if pos.shape == (2,):
             pos = np.concatenate([pos, [0]])  # Add a zero z-coordinate
@@ -1063,6 +1078,10 @@ class Engine(gym.Env, gym.utils.EzPickle):
             obs['goal_dist'] = np.array([np.exp(-self.dist_goal())])
         if self.observe_goal_comp:
             obs['goal_compass'] = self.obs_compass(self.goal_pos)
+        if self.observe_subgoal_dist:
+            obs['subgoal_dist'] = np.array([np.exp(-self.dist_subgoal())])
+        if self.observe_goal_comp:
+            obs['subgoal_compass'] = self.obs_compass(self.subgoal_pos)
         if self.observe_goal_lidar:
             obs['goal_lidar'] = self.obs_lidar([self.goal_pos], GROUP_GOAL)
         if self.observe_subgoal_lidar:
@@ -1324,12 +1343,12 @@ class Engine(gym.Env, gym.utils.EzPickle):
         if subgoal is not None:
             if hasattr(self, "state_encoder"):
                 obs_embedding = self.state_encoder.encode(obs)
-                subgoal_dist = np.exp(-np.linalg.norm(obs_embedding - subgoal))
             else:
                 if subgoal.shape == (2,):
-                    subgoal = np.r_[subgoal, 0]
-
-                subgoal_dist = np.exp(-self.dist_xy(subgoal))
+                    obs_embedding = self.world.robot_pos()[:2]
+                else:
+                    obs_embedding = self.obs()
+            subgoal_dist = np.exp(-np.linalg.norm(obs_embedding - subgoal, ord=2))
 
             if (subgoal != self.subgoal_pos).any():
                 self._subgoal_pos = subgoal
@@ -1481,7 +1500,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
             self._old_render_mode = mode
         self.viewer.update_sim(self.sim)
 
-        self.render_sphere(self.subgoal_pos, 0.3, COLOR_SUBGOAL, alpha=.5)
+        if self.subgoal_pos is not None:
+            self.render_sphere(self.subgoal_pos, 0.3, COLOR_SUBGOAL, alpha=.5)
 
         if camera_id is not None:
             # Update camera if desired
@@ -1501,6 +1521,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
                     self.render_lidar([self.goal_pos], COLOR_GOAL, offset, GROUP_GOAL)
                 if 'goal_compass' in self.obs_space_dict:
                     self.render_compass(self.goal_pos, COLOR_GOAL, offset)
+                if 'subgoal_compass' in self.obs_space_dict:
+                    self.render_compass(self.subgoal_pos, COLOR_SUBGOAL, offset)
                 offset += self.render_lidar_offset_delta
             if 'subgoal_lidar' in self.obs_space_dict:
                 self.render_lidar([self.subgoal_pos], COLOR_SUBGOAL, offset, GROUP_SUBGOAL)
