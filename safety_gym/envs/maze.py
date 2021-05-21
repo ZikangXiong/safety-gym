@@ -112,7 +112,7 @@ no_subgoal_2 = {
 no_subgoal_2.update(goal_constrained)
 
 # ==============#
-# Toy Goal
+# Toy Goal 0
 # ==============#
 toy_goal_0 = {
     'observe_goal_comp': True,
@@ -125,6 +125,21 @@ toy_goal_0 = {
     "observe_vases": False
 }
 
+# ==============#
+# Compass Goal 0
+# ==============#
+compass_goal_0 = {
+    'observe_goal_comp': True,
+    'observe_goal_dist': True,
+    'observe_subgoal_comp': True,
+    'observe_subgoal_dist': True,
+    "observe_goal_lidar": False,
+    "observe_subgoal_lidar": False,
+    "observe_hazards": False,
+    "observe_vases": False,
+    "observe_com": True
+}
+
 bench_goal_base = bench_base.copy('Goal', goal_all)
 bench_goal_base.register('Maze0', goal0)
 bench_goal_base.register('Maze1', goal1)
@@ -133,3 +148,4 @@ bench_goal_base.register('MazeNoSub0', no_subgoal_0)
 bench_goal_base.register('MazeNoSub1', no_subgoal_1)
 bench_goal_base.register('MazeNoSub2', no_subgoal_2)
 bench_goal_base.register('MazeToy0', toy_goal_0)
+bench_goal_base.register('MazeCompass0', compass_goal_0)
