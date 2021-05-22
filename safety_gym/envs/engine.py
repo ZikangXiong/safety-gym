@@ -1576,7 +1576,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
     def select_training_phase(self, *args, **kwargs):
         # call this after every epoch to select training phase
-        if np.mean(self.cum_subgoal_rewards) > 5.0:
+        if np.mean(self.cum_subgoal_rewards) > 4.5:
             return 1
         else:
             return 0

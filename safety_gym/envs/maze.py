@@ -5,6 +5,7 @@ from copy import deepcopy
 
 zero_base_dict = {'placements_extents': [-1, -1, 1, 1]}
 
+
 # =============================================================================#
 #                                                                             #
 #       Goal Environments                                                     #
@@ -12,27 +13,55 @@ zero_base_dict = {'placements_extents': [-1, -1, 1, 1]}
 # =============================================================================#
 
 # generate wall
-side = np.arange(-2, 2, 0.2)
-wall = []
-for x in side:
-    wall.append((x, 2))
-    wall.append((x, -2))
-for y in side:
-    wall.append((2, y))
-    wall.append((-2, y))
+def out_wall():
+    side = np.arange(-2, 2, 0.2)
+    wall = []
+    for x in side:
+        wall.append((x, 2))
+        wall.append((x, -2))
+    for y in side:
+        wall.append((2, y))
+        wall.append((-2, y))
+    return wall
 
-obs_side1 = np.arange(-2.0, -0.4, 0.2)
-obs_side2 = np.arange(-0.4, 2.0, 0.2)
-obstacles = []
 
-for x in obs_side1:
-    obstacles.append((x, 0))
+def maze1():
+    wall = out_wall()
 
-for x in obs_side2:
-    obstacles.append((x, 0.8))
+    obs_side1 = np.arange(-2.0, -0.4, 0.2)
+    obs_side2 = np.arange(-0.4, 2.0, 0.2)
+    obstacles = []
 
-wall.extend(obstacles)
+    for x in obs_side1:
+        obstacles.append((x, 0))
 
+    for x in obs_side2:
+        obstacles.append((x, 0.8))
+
+    wall.extend(obstacles)
+
+    return wall
+
+
+def maze2():
+    wall = out_wall()
+
+    obs_side1 = np.arange(-2.0, -0.4, 0.2)
+    obs_side2 = np.arange(-0.8, 2.0, 0.2)
+    obstacles = []
+
+    for x in obs_side1:
+        obstacles.append((x, -0.5))
+
+    for x in obs_side2:
+        obstacles.append((x, 0.0))
+
+    wall.extend(obstacles)
+
+    return wall
+
+
+wall = maze1()
 # Shared among all (levels 0, 1, 2)
 goal_all = {
     'task': 'goal',
@@ -125,6 +154,7 @@ toy_goal_0 = {
     "observe_vases": False
 }
 
+wall = maze2()
 # ==============#
 # Compass Goal 0
 # ==============#
@@ -137,7 +167,10 @@ compass_goal_0 = {
     "observe_subgoal_lidar": False,
     "observe_hazards": False,
     "observe_vases": False,
-    "observe_com": True
+    "observe_com": True,
+    'walls_num': len(wall),  # Number of walls
+    'walls_locations': wall,  # This should be used and length == walls_num
+    'walls_size': 0.1,  # Should be fixed at fundamental size of the world
 }
 
 bench_goal_base = bench_base.copy('Goal', goal_all)
