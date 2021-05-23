@@ -154,7 +154,6 @@ toy_goal_0 = {
     "observe_vases": False
 }
 
-wall = maze2()
 # ==============#
 # Compass Goal 0
 # ==============#
