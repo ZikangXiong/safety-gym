@@ -171,7 +171,8 @@ compass_goal_0 = {
     'walls_locations': wall,  # This should be used and length == walls_num
     'walls_size': 0.1,  # Should be fixed at fundamental size of the world
     'reward_goal': 1e4,
-    'task': "goal"
+    'task': "goal",
+    'num_steps': 2000
 }
 
 bench_goal_base = bench_base.copy('Goal', goal_all)
