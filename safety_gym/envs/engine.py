@@ -358,7 +358,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
     @property
     def goal_pos(self):
         ''' Helper to get goal position from layout '''
-        if self.task in ['goal', 'push']:
+        if self.task in ['goal', 'push', 'maze']:
             return self.data.get_body_xpos('goal').copy()
         elif self.task == 'button':
             return self.data.get_body_xpos(f'button{self.goal_button}').copy()
@@ -550,7 +550,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         placements.update(self.placements_dict_from_object('robot'))
         placements.update(self.placements_dict_from_object('wall'))
 
-        if self.task in ['goal', 'push']:
+        if self.task in ['goal', 'push', 'maze']:
             placements.update(self.placements_dict_from_object('goal'))
         if self.task == 'push':
             placements.update(self.placements_dict_from_object('box'))
@@ -718,7 +718,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
         # Extra geoms (immovable objects) to add to the scene
         world_config['geoms'] = {}
-        if self.task in ['goal', 'push']:
+        if self.task in ['goal', 'push', 'maze']:
             geom = {'name': 'goal',
                     'size': [self.goal_size, self.goal_size / 2],
                     'pos': np.r_[self.layout['goal'], self.goal_size / 2 + 1e-2],
@@ -811,7 +811,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
     def build_goal(self):
         ''' Build a new goal position, maybe with resampling due to hazards '''
-        if self.task == 'goal':
+        if self.task == 'goal' or self.task == 'maze':
             self.build_goal_position()
             self.last_dist_goal = self.dist_goal()
         elif self.task == 'push':
@@ -1232,7 +1232,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
     def goal_met(self):
         ''' Return true if the current goal is met this step '''
-        if self.task == 'goal':
+        if self.task == 'goal' or self.task == 'maze':
             return self.dist_goal() <= self.goal_size
         if self.task == 'push':
             return self.dist_box_goal() <= self.goal_size
@@ -1375,6 +1375,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
             dist_goal = self.dist_goal()
             reward += (self.last_dist_goal - dist_goal) * self.reward_distance
             self.last_dist_goal = dist_goal
+        if self.task == "maze":
+            # sparse reward
+            reward = -0.1
         # Distance from robot to box
         if self.task == 'push':
             dist_box = self.dist_box()

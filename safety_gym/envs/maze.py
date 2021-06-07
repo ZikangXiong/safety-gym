@@ -28,15 +28,15 @@ def out_wall():
 def maze1():
     wall = out_wall()
 
-    obs_side1 = np.arange(-2.0, -0.4, 0.2)
-    obs_side2 = np.arange(-0.4, 2.0, 0.2)
+    obs_side1 = np.arange(-2.0, -0.5, 0.2)
+    obs_side2 = np.arange(-0.5, 2.0, 0.2)
     obstacles = []
 
     for x in obs_side1:
         obstacles.append((x, 0))
 
     for x in obs_side2:
-        obstacles.append((x, 0.8))
+        obstacles.append((x, 1.0))
 
     wall.extend(obstacles)
 
@@ -170,7 +170,8 @@ compass_goal_0 = {
     'walls_num': len(wall),  # Number of walls
     'walls_locations': wall,  # This should be used and length == walls_num
     'walls_size': 0.1,  # Should be fixed at fundamental size of the world
-    'reward_goal': 20.0
+    'reward_goal': 1e4,
+    'task': "goal"
 }
 
 bench_goal_base = bench_base.copy('Goal', goal_all)
