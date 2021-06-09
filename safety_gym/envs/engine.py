@@ -206,6 +206,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         'reward_z': 1.0,  # Reward for standup tests (vel in z direction)
         'reward_circle': 1e-1,  # Reward for circle goal (complicated formula depending on pos and vel)
         'reward_clip': 10,  # Clip reward, last resort against physics errors causing magnitude spikes
+        'sparse_reward': False,
 
         # Buttons are small immovable spheres, to the environment
         'buttons_num': 0,  # Number of buttons to add
@@ -1085,6 +1086,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
         if self.observe_goal_lidar:
             obs['goal_lidar'] = self.obs_lidar([self.goal_pos], GROUP_GOAL)
         if self.observe_subgoal_lidar:
+            if self.subgoal_pos is None:
+                self._subgoal_pos = np.array([0.0, 0.0, -3.0])
             obs['subgoal_lidar'] = self.obs_lidar([self.subgoal_pos], GROUP_SUBGOAL)
         if self.task == 'push':
             box_pos = self.box_pos
@@ -1350,7 +1353,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                     obs_embedding = self.obs()
             subgoal_dist = np.exp(-np.linalg.norm(obs_embedding - subgoal, ord=2))
 
-            if (subgoal != self.subgoal_pos).any():
+            if (subgoal != self.subgoal_pos[:2]).any():
                 self._subgoal_pos = subgoal
                 info["subgoal_reward"] = 0.0
             else:
@@ -1370,6 +1373,10 @@ class Engine(gym.Env, gym.utils.EzPickle):
     def reward(self):
         ''' Calculate the dense component of reward.  Call exactly once per step '''
         reward = 0.0
+
+        if self.sparse_reward:
+            return reward
+
         # Distance from robot to goal
         if self.task in ['goal', 'button']:
             dist_goal = self.dist_goal()
