@@ -25,7 +25,7 @@ intro1 = {
     'observe_subgoal_lidar': True,
     'sparse_reward': True,
     "observe_com": True,
-    'num_steps': 200
+    'num_steps': 1000
 }
 
 bench_goal_base = bench_base.copy('Intro', goal_all)

@@ -326,7 +326,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self._subgoal_pos = None
         self._previous_subgoal_dist = None
 
-        self.cum_subgoal_rewards = []
+        self.subgoal_achieved_steps = []
+        self.step_count = 0
 
     def parse(self, config):
         ''' Parse a config dict - see self.DEFAULT for description '''
@@ -909,8 +910,6 @@ class Engine(gym.Env, gym.utils.EzPickle):
         # Reset stateful parts of the environment
         self.first_reset = False  # Built our first world successfully
 
-        self.cum_subgoal_rewards.append(0.0)
-
         # Return an observation
         return self.obs()
 
@@ -1361,10 +1360,11 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
             info["subgoal_done"] = subgoal_dist > 0.8  # around radius 0.3
 
+            self.step_count += 1
             if info["subgoal_done"]:
                 info["subgoal_reward"] += 1.0
-
-            self.cum_subgoal_rewards[-1] += info["subgoal_reward"]
+                self.subgoal_achieved_steps.append(self.step_count)
+                self.step_count = 0
 
             self._previous_subgoal_dist = subgoal_dist
 
@@ -1586,12 +1586,12 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
     def select_training_phase(self, *args, **kwargs):
         # call this after every epoch to select training phase
-        # TOD: BACK TO 5.0
-        if np.mean(self.cum_subgoal_rewards[:-1]) > 5.0:
+        if len(self.subgoal_achieved_steps) > 0 and np.mean(self.subgoal_achieved_steps) < 100.0:
             return 1
         else:
             return 0
 
     def epoch_ends(self):
         # reset cumulative subgoal reward
-        self.cum_subgoal_rewards = [0.0]
+        self.subgoal_achieved_steps = []
+        self.step_count = 0
