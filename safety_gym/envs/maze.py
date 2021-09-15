@@ -1,6 +1,6 @@
 import numpy as np
-
-from .suite import bench_base
+from search.translate import Translation
+from suite import bench_base
 from copy import deepcopy
 
 zero_base_dict = {'placements_extents': [-1, -1, 1, 1]}
@@ -62,6 +62,7 @@ def maze2():
 
 
 wall = maze1()
+t = Translation(wall)
 # Shared among all (levels 0, 1, 2)
 goal_all = {
     'task': 'goal',
@@ -184,3 +185,4 @@ bench_goal_base.register('MazeNoSub1', no_subgoal_1)
 bench_goal_base.register('MazeNoSub2', no_subgoal_2)
 bench_goal_base.register('MazeToy0', toy_goal_0)
 bench_goal_base.register('MazeCompass0', compass_goal_0)
+
