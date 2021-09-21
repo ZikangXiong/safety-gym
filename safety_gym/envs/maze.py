@@ -1,6 +1,3 @@
-import sys
-sys.path.append('../')
-
 import numpy as np
 from search.translate import Translation
 from suite import bench_base
