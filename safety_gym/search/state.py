@@ -1,7 +1,6 @@
 import search.constants as c
 from search.location import Location
 
-
 class State:
     def __init__(self, cost, state, board_rows, board_cols):
 
@@ -19,7 +18,7 @@ class State:
                 self.cost[r][c] = cost[i]
                 i = i + 1
 
-    def next_position(self, action, state):
+    def next_position(self, action, state, step_size):
         """
         action: up, down, left, right
         --  --  --  --  --  -- -
@@ -29,13 +28,13 @@ class State:
         return next position
         """
         if action == "up":
-            next_state = Location(state.row - c.STEP, state.col)
+            next_state = Location(state.row - step_size, state.col)
         elif action == "down":
-            next_state = Location(state.row + c.STEP, state.col)
+            next_state = Location(state.row + step_size, state.col)
         elif action == "left":
-            next_state = Location(state.row, state.col - c.STEP)
+            next_state = Location(state.row, state.col - step_size)
         else:
-            next_state = Location(state.row, state.col + c.STEP)
+            next_state = Location(state.row, state.col + step_size)
 
         # if next state legal
         if next_state.row < 0:

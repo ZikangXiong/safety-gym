@@ -1,16 +1,19 @@
 from queue import PriorityQueue
 
 import search.constants as c
-
+from typing import List, Dict
+import numpy as np
 
 class Agent:
     """
     Agent of player
     """
-    def __init__(self, state):
+
+    def __init__(self, state, configs: Dict):
         self.states = []
         self.actions = ["up", "down", "left", "right"]
-        self.State = state
+        self.state = state
+        self.configs = configs
 
         # initial state reward
         self.state_values = {}
@@ -31,12 +34,12 @@ class Agent:
 
     def get_average_cost(self, x, y):
         cost = 0
-        for i in range(c.ROBOT_SIZE):
-            for j in range(c.ROBOT_SIZE):
-                cost = cost + self.State.cost[y + j - 1][x + i - 1]
+        for i in range(self.configs["robot_size"]):
+            for j in range(self.configs["robot_size"]):
+                cost = cost + self.state.cost[y + j - 1][x + i - 1]
                 if cost > 0:
                     hi = 9
-        cost = cost / (c.ROBOT_SIZE * c.ROBOT_SIZE)
+        cost = cost / (self.configs["robot_size"] * self.configs["robot_size"])
         return cost
 
     def a_star_search(self, start_state, goal_state):
@@ -48,19 +51,25 @@ class Agent:
         while not q.empty():
             current = q.get()
 
-            if current == goal_state:
+            current_array = np.array([current.row, current.col])
+            goal_state_array = np.array([goal_state.row, goal_state.col])
+            goal_size = self.configs["goal_size"]
+
+            if (current_array <= goal_state_array + goal_size).all() \
+                    and (current_array >= goal_state_array - goal_size).all():
                 break
             else:
                 for _dir in self.actions:
-                    next_state = self.State.next_position(_dir, current)
+                    next_state = self.state.next_position(_dir, current, self.configs["step_size"])
                     next_state_cost = self.get_average_cost(next_state.row, next_state.col)
                     new_cost = path_cost[current] + next_state_cost
 
                     if (next_state not in path_cost and next_state_cost == 0) or (
                             next_state in path_cost and new_cost < path_cost[next_state]):
                         path_cost[next_state] = new_cost
-                        new_priority = new_cost + (self.State.heuristic(next_state, goal_state))
+                        new_priority = new_cost + (self.state.heuristic(next_state, goal_state))
                         q.put(next_state, new_priority)
                         path[next_state] = current
 
         return self.reconstruct_path(path, start_state, goal_state), path_cost
+

@@ -1,3 +1,6 @@
+import sys
+sys.path.append('../')
+
 import numpy as np
 from search.translate import Translation
 from suite import bench_base
@@ -63,6 +66,7 @@ def maze2():
 
 wall = maze1()
 t = Translation(wall)
+t.start_search("2d_nav")
 # Shared among all (levels 0, 1, 2)
 goal_all = {
     'task': 'goal',
