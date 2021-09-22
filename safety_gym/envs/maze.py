@@ -63,7 +63,7 @@ def maze2():
 
 wall = maze1()
 t = Translation(wall)
-t.start_search("2d_nav")
+t.start_search("safety-gym-maze-*")
 # Shared among all (levels 0, 1, 2)
 goal_all = {
     'task': 'goal',

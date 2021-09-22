@@ -43,9 +43,3 @@ class Translation:
 
         path = [np.array([loc.row, loc.col]) for loc in path]
         return path
-
-
-
-
-
-
