@@ -58,7 +58,7 @@ class Agent:
             #If we use the following lines, we aren't able to reach the goal. Keeping
             #   them commented in case we want to use them in the future
             #if (current_array <= goal_state_array + goal_size).all() \
-            #        and (current_array >= goal_state_array - goal_size).all():
+                    #        and (current_array >= goal_state_array - goal_size).all():
             if (current_array == goal_state_array).all():
                 break
             else:

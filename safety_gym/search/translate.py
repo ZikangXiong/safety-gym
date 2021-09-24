@@ -9,7 +9,7 @@ from planning_config import planning_config
 from maze import Maze
 
 class Translation:
-    
+
     def __init__(self, maze=None): 
         if maze is not None:
             arr_type = np.dtype('float,float')
