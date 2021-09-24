@@ -1,6 +1,6 @@
 from queue import PriorityQueue
 
-import search.constants as c
+import constants as c
 from typing import List, Dict
 import numpy as np
 
@@ -70,6 +70,7 @@ class Agent:
                         new_priority = new_cost + (self.state.heuristic(next_state, goal_state))
                         q.put(next_state, new_priority)
                         path[next_state] = current
-
+        
+        #return path, path_cost
         return self.reconstruct_path(path, start_state, goal_state), path_cost
 

@@ -1,5 +1,5 @@
-import search.constants as c
-from search.location import Location
+import constants as c
+from location import Location
 
 class State:
     def __init__(self, cost, state, board_rows, board_cols):

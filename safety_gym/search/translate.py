@@ -1,31 +1,32 @@
 import numpy as np
-import search.constants as c
-from search.location import Location
-from search.state import State
-from search.a_star import Agent
+import constants as c
+from location import Location
+from state import State
+from a_star import Agent
 
 from typing import List, Dict
-from planner.planning_config import planning_config
-from planner.maze import Maze
+from planning_config import planning_config
+from maze import Maze
 
 class Translation:
     
-    def __init__(self, maze): 
-        arr_type = np.dtype('float,float')
-        selfmaze = np.array(maze, arr_type)
+    def __init__(self, maze=None): 
+        if maze is not None:
+            arr_type = np.dtype('float,float')
+            self.maze = np.array(maze, arr_type)
 
-        dim = int(c.BOARD_SIZE/c.BOARD_STEP) + 1
+            dim = int(c.BOARD_SIZE/c.BOARD_STEP) + 1
 
-        board = np.zeros(shape=(dim, dim))
-        offset = c.BOARD_SIZE / 2
-        for block in maze:
-            x = round(block[0], 1) * c.ROUND_FACTOR
-            y = round(block[1], 1) * c.ROUND_FACTOR
+            board = np.zeros(shape=(dim, dim))
+            offset = c.BOARD_SIZE / 2
+            for block in maze:
+                x = round(block[0], 1) * c.ROUND_FACTOR
+                y = round(block[1], 1) * c.ROUND_FACTOR
 
-            col = int(abs(x + offset*c.ROUND_FACTOR) / offset)
-            row = int(abs(y - offset*c.ROUND_FACTOR) / offset)
+                col = int(abs(x + offset*c.ROUND_FACTOR) / offset)
+                row = int(abs(y - offset*c.ROUND_FACTOR) / offset)
 
-            board[row][col] = c.INFINITY
+                board[row][col] = c.INFINITY
 
     def start_search(self, task_name):
         # returns a path 
