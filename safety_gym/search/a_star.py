@@ -37,8 +37,6 @@ class Agent:
         for i in range(self.configs["robot_size"]):
             for j in range(self.configs["robot_size"]):
                 cost = cost + self.state.cost[y + j - 1][x + i - 1]
-                if cost > 0:
-                    hi = 9
         cost = cost / (self.configs["robot_size"] * self.configs["robot_size"])
         return cost
 
