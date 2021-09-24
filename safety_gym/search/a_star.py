@@ -70,7 +70,8 @@ class Agent:
                         new_priority = new_cost + (self.state.heuristic(next_state, goal_state))
                         q.put(next_state, new_priority)
                         path[next_state] = current
-        
+        print(path)
+
         #return path, path_cost
         return self.reconstruct_path(path, start_state, goal_state), path_cost
 

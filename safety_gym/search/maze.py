@@ -31,17 +31,17 @@ class Maze:
             y2 = w[2][1]
             thickness = w[3]
 
-            is_horizontal = y1 == y2
-            if is_horizontal:
+            is_vertical = y1 == y2
+            if is_vertical:
                 for i in range(thickness):
                     xval = min(x1, x2)
                     for x in range(abs(x1 - x2)):
-                        self.maze_np[y1 + i - 1][xval + x - 1] = 1
+                        self.maze_np[y1 + i][xval + x] = 1
             else:
                 for i in range(thickness):
                     yval = min(y1, y2)
                     for y in range(abs(y1 - y2)):
-                        self.maze_np[yval + y - 1][x1 + i - 1] = 1
+                        self.maze_np[yval + y][x1 + i] = 1
 
     def _build_obstacles(self):
         if self.maze_config["obs_pos"] is None:
