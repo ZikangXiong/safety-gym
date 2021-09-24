@@ -55,8 +55,11 @@ class Agent:
             goal_state_array = np.array([goal_state.row, goal_state.col])
             goal_size = self.configs["goal_size"]
 
-            if (current_array <= goal_state_array + goal_size).all() \
-                    and (current_array >= goal_state_array - goal_size).all():
+            #If we use the following lines, we aren't able to reach the goal. Keeping
+            #   them commented in case we want to use them in the future
+            #if (current_array <= goal_state_array + goal_size).all() \
+            #        and (current_array >= goal_state_array - goal_size).all():
+            if (current_array == goal_state_array).all():
                 break
             else:
                 for _dir in self.actions:
@@ -70,8 +73,6 @@ class Agent:
                         new_priority = new_cost + (self.state.heuristic(next_state, goal_state))
                         q.put(next_state, new_priority)
                         path[next_state] = current
-        print(path)
 
-        #return path, path_cost
         return self.reconstruct_path(path, start_state, goal_state), path_cost
 
