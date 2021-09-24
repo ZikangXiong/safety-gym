@@ -1,6 +1,7 @@
 from typing import List
 import numpy as np
 from translate import Translation
+from maze import Maze
 
 
 class Plan:

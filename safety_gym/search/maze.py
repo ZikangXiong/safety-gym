@@ -11,10 +11,10 @@ class Maze:
         self.maze_np = np.zeros(self.maze_config["board_size"])
         self._build()
 
-    def plot(self):
+    def plot(self, name="maze.png"):
         sns.heatmap(self.maze_np, linewidth=0.0)
         plt.show()
-        plt.savefig('graph.png')
+        plt.savefig(name)
 
     def _build(self):
         self._build_walls()

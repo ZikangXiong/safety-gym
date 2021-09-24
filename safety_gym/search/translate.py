@@ -10,8 +10,8 @@ from maze import Maze
 
 class Translation:
 
-    def __init__(self, maze=None): 
-        if maze is not None:
+    def __init__(self, board=None): 
+        if board is not None:
             arr_type = np.dtype('float,float')
             self.maze = np.array(maze, arr_type)
 
@@ -39,8 +39,9 @@ class Translation:
         maze = Maze(task_name)
 
         state = State(maze.maze_np.flatten(), start, *maze.maze_np.shape)
-        agent = Agent(state, _config)
+        agent = Agent(state, _config, maze)
         path, _ = agent.a_star_search(start, goal)
 
         path = [np.array([loc.row, loc.col]) for loc in path]
+        maze.plot("safety-gym-maze-1_result.png") 
         return path

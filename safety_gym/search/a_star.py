@@ -9,11 +9,12 @@ class Agent:
     Agent of player
     """
 
-    def __init__(self, state, configs: Dict):
+    def __init__(self, state, configs: Dict, maze):
         self.states = []
         self.actions = ["up", "down", "left", "right"]
         self.state = state
         self.configs = configs
+        self.maze = maze
 
         # initial state reward
         self.state_values = {}
@@ -21,13 +22,13 @@ class Agent:
             for j in range(state.board_cols):
                 self.state_values[(i, j)] = 0  # set initial value to 0
 
-    @staticmethod
-    def reconstruct_path(path, start, goal):
+    def reconstruct_path(self, path, start, goal):
         new_path = []
         new_path.insert(0, goal)
         curr = path[goal]
         while path[curr] is not None:
             new_path.insert(0, curr)
+            self.maze.maze_np[curr.col][curr.row] = 0.5
             curr = path[curr]
         new_path.insert(0, start)
         return new_path
@@ -45,6 +46,7 @@ class Agent:
         q.put(start_state, False)
         path = {start_state: None}
         path_cost = {start_state: 0.0}
+
 
         while not q.empty():
             current = q.get()
