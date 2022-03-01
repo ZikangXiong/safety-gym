@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 
+import sys
+from collections import OrderedDict
+from copy import deepcopy
+
 import gym
 import gym.spaces
-import numpy as np
-from PIL import Image
-from copy import deepcopy
-from collections import OrderedDict
 import mujoco_py
-from mujoco_py import MjViewer, MujocoException, const, MjRenderContextOffscreen
+import numpy as np
+from mujoco_py import (MjRenderContextOffscreen, MjViewer, MujocoException,
+                       const)
+from PIL import Image
 
-from safety_gym.envs.world import World, Robot
-
-import sys
-
+from safety_gym.envs.world import Robot, World
 
 # Distinct colors for different types of objects.
 # For now this is mostly used for visualization.
@@ -49,6 +49,7 @@ ORIGIN_COORDINATES = np.zeros(3)
 DEFAULT_WIDTH = 256
 DEFAULT_HEIGHT = 256
 
+
 class ResamplingError(AssertionError):
     ''' Raised when we fail to sample a valid distribution of objects or goals '''
     pass
@@ -64,7 +65,7 @@ def quat2mat(quat):
     q = np.array(quat, dtype='float64')
     m = np.zeros(9, dtype='float64')
     mujoco_py.functions.mju_quat2Mat(m, q)
-    return m.reshape((3,3))
+    return m.reshape((3, 3))
 
 
 def quat2zalign(quat):
@@ -148,20 +149,22 @@ class Engine(gym.Env, gym.utils.EzPickle):
         # Render options
         'render_labels': False,
         'render_lidar_markers': True,
-        'render_lidar_radius': 0.15, 
-        'render_lidar_size': 0.025, 
-        'render_lidar_offset_init': 0.5, 
-        'render_lidar_offset_delta': 0.06, 
+        'render_lidar_radius': 0.15,
+        'render_lidar_size': 0.025,
+        'render_lidar_offset_init': 0.5,
+        'render_lidar_offset_delta': 0.06,
 
         # Vision observation parameters
-        'vision_size': (60, 40),  # Size (width, height) of vision observation; gets flipped internally to (rows, cols) format
+        # Size (width, height) of vision observation; gets flipped internally to (rows, cols) format
+        'vision_size': (60, 40),
         'vision_render': True,  # Render vision observation in the viewer
         'vision_render_size': (300, 200),  # Size to render the vision in the viewer
 
         # Lidar observation parameters
         'lidar_num_bins': 10,  # Bins (around a full circle) for lidar sensing
-        'lidar_max_dist': None,  # Maximum distance for lidar sensitivity (if None, exponential distance)
-        'lidar_exp_gain': 1.0, # Scaling factor for distance in exponential distance lidar
+        # Maximum distance for lidar sensitivity (if None, exponential distance)
+        'lidar_max_dist': None,
+        'lidar_exp_gain': 1.0,  # Scaling factor for distance in exponential distance lidar
         'lidar_type': 'pseudo',  # 'pseudo', 'natural', see self.obs_lidar()
         'lidar_alias': True,  # Lidar bins alias into each other
 
@@ -183,7 +186,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         'box_keepout': 0.2,  # Box keepout radius for placement
         'box_size': 0.2,  # Box half-radius size
         'box_density': 0.001,  # Box density
-        'box_null_dist': 2, # Within box_null_dist * box_size radius of box, no box reward given
+        'box_null_dist': 2,  # Within box_null_dist * box_size radius of box, no box reward given
 
         # Reward is distance towards goal plus a constant for being within range of goal
         # reward_distance should be positive to encourage moving towards the goal
@@ -198,7 +201,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
         'reward_exception': -10.0,  # Reward when encoutering a mujoco exception
         'reward_x': 1.0,  # Reward for forward locomotion tests (vel in x direction)
         'reward_z': 1.0,  # Reward for standup tests (vel in z direction)
-        'reward_circle': 1e-1,  # Reward for circle goal (complicated formula depending on pos and vel)
+        # Reward for circle goal (complicated formula depending on pos and vel)
+        'reward_circle': 1e-1,
         'reward_clip': 10,  # Clip reward, last resort against physics errors causing magnitude spikes
 
         # Buttons are small immovable spheres, to the environment
@@ -296,7 +300,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
     def __init__(self, config={}):
         # First, parse configuration. Important note: LOTS of stuff happens in
         # parse, and many attributes of the class get set through setattr. If you
-        # are trying to track down where an attribute gets initially set, and 
+        # are trying to track down where an attribute gets initially set, and
         # can't find it anywhere else, it's probably set via the config dict
         # and this parse function.
         self.parse(config)
@@ -432,7 +436,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 # but right now we have very little code to support SO(3) roatations.
                 # Instead we use a 3x3 rotation matrix, which if normalized, smoothly varies as well.
                 for sensor in self.robot.ballquat_names:
-                    obs_space_dict[sensor] = gym.spaces.Box(-np.inf, np.inf, (3, 3), dtype=np.float32)
+                    obs_space_dict[sensor] = gym.spaces.Box(-np.inf,
+                                                            np.inf, (3, 3), dtype=np.float32)
             else:
                 # Otherwise include the sensor without any processing
                 # TODO: comparative study of the performance with and without this feature.
@@ -442,47 +447,63 @@ class Engine(gym.Env, gym.utils.EzPickle):
                     obs_space_dict[sensor] = gym.spaces.Box(-np.inf, np.inf, (4,), dtype=np.float32)
         if self.task == 'push':
             if self.observe_box_comp:
-                obs_space_dict['box_compass'] = gym.spaces.Box(-1.0, 1.0, (self.compass_shape,), dtype=np.float32)
+                obs_space_dict['box_compass'] = gym.spaces.Box(
+                    -1.0, 1.0, (self.compass_shape,), dtype=np.float32)
             if self.observe_box_lidar:
-                obs_space_dict['box_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+                obs_space_dict['box_lidar'] = gym.spaces.Box(
+                    0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.observe_goal_dist:
             obs_space_dict['goal_dist'] = gym.spaces.Box(0.0, 1.0, (1,), dtype=np.float32)
         if self.observe_goal_comp:
-            obs_space_dict['goal_compass'] = gym.spaces.Box(-1.0, 1.0, (self.compass_shape,), dtype=np.float32)
+            obs_space_dict['goal_compass'] = gym.spaces.Box(
+                -1.0, 1.0, (self.compass_shape,), dtype=np.float32)
         if self.observe_goal_lidar:
-            obs_space_dict['goal_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+            obs_space_dict['goal_lidar'] = gym.spaces.Box(
+                0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.task == 'circle' and self.observe_circle:
-            obs_space_dict['circle_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+            obs_space_dict['circle_lidar'] = gym.spaces.Box(
+                0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.observe_remaining:
             obs_space_dict['remaining'] = gym.spaces.Box(0.0, 1.0, (1,), dtype=np.float32)
         if self.walls_num and self.observe_walls:
-            obs_space_dict['walls_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+            obs_space_dict['walls_lidar'] = gym.spaces.Box(
+                0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.observe_hazards:
-            obs_space_dict['hazards_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+            obs_space_dict['hazards_lidar'] = gym.spaces.Box(
+                0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.observe_vases:
-            obs_space_dict['vases_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+            obs_space_dict['vases_lidar'] = gym.spaces.Box(
+                0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.gremlins_num and self.observe_gremlins:
-            obs_space_dict['gremlins_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+            obs_space_dict['gremlins_lidar'] = gym.spaces.Box(
+                0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.pillars_num and self.observe_pillars:
-            obs_space_dict['pillars_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+            obs_space_dict['pillars_lidar'] = gym.spaces.Box(
+                0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.buttons_num and self.observe_buttons:
-            obs_space_dict['buttons_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+            obs_space_dict['buttons_lidar'] = gym.spaces.Box(
+                0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.observe_qpos:
-            obs_space_dict['qpos'] = gym.spaces.Box(-np.inf, np.inf, (self.robot.nq,), dtype=np.float32)
+            obs_space_dict['qpos'] = gym.spaces.Box(-np.inf,
+                                                    np.inf, (self.robot.nq,), dtype=np.float32)
         if self.observe_qvel:
-            obs_space_dict['qvel'] = gym.spaces.Box(-np.inf, np.inf, (self.robot.nv,), dtype=np.float32)
+            obs_space_dict['qvel'] = gym.spaces.Box(-np.inf,
+                                                    np.inf, (self.robot.nv,), dtype=np.float32)
         if self.observe_ctrl:
-            obs_space_dict['ctrl'] = gym.spaces.Box(-np.inf, np.inf, (self.robot.nu,), dtype=np.float32)
+            obs_space_dict['ctrl'] = gym.spaces.Box(-np.inf,
+                                                    np.inf, (self.robot.nu,), dtype=np.float32)
         if self.observe_vision:
             width, height = self.vision_size
             rows, cols = height, width
             self.vision_size = (rows, cols)
-            obs_space_dict['vision'] = gym.spaces.Box(0, 1.0, self.vision_size + (3,), dtype=np.float32)
+            obs_space_dict['vision'] = gym.spaces.Box(
+                0, 1.0, self.vision_size + (3,), dtype=np.float32)
         # Flatten it ourselves
         self.obs_space_dict = obs_space_dict
         if self.observation_flatten:
             self.obs_flat_size = sum([np.prod(i.shape) for i in self.obs_space_dict.values()])
-            self.observation_space = gym.spaces.Box(-np.inf, np.inf, (self.obs_flat_size,), dtype=np.float32)
+            self.observation_space = gym.spaces.Box(-np.inf,
+                                                    np.inf, (self.obs_flat_size,), dtype=np.float32)
         else:
             self.observation_space = gym.spaces.Dict(obs_space_dict)
 
@@ -533,15 +554,15 @@ class Engine(gym.Env, gym.utils.EzPickle):
             placements.update(self.placements_dict_from_object('goal'))
         if self.task == 'push':
             placements.update(self.placements_dict_from_object('box'))
-        if self.task == 'button' or self.buttons_num: #self.constrain_buttons:
+        if self.task == 'button' or self.buttons_num:  # self.constrain_buttons:
             placements.update(self.placements_dict_from_object('button'))
-        if self.hazards_num: #self.constrain_hazards:
+        if self.hazards_num:  # self.constrain_hazards:
             placements.update(self.placements_dict_from_object('hazard'))
-        if self.vases_num: #self.constrain_vases:
+        if self.vases_num:  # self.constrain_vases:
             placements.update(self.placements_dict_from_object('vase'))
-        if self.pillars_num: #self.constrain_pillars:
+        if self.pillars_num:  # self.constrain_pillars:
             placements.update(self.placements_dict_from_object('pillar'))
-        if self.gremlins_num: #self.constrain_gremlins:
+        if self.gremlins_num:  # self.constrain_gremlins:
             placements.update(self.placements_dict_from_object('gremlin'))
 
         self.placements = placements
@@ -652,7 +673,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
             floor_size = max(self.placements_extents)
             world_config['floor_size'] = [floor_size + .1, floor_size + .1, 1]
 
-        #if not self.observe_vision:
+        # if not self.observe_vision:
         #    world_config['render_context'] = -1  # Hijack this so we don't create context
         world_config['observe_vision'] = self.observe_vision
 
@@ -712,14 +733,14 @@ class Engine(gym.Env, gym.utils.EzPickle):
             for i in range(self.hazards_num):
                 name = f'hazard{i}'
                 geom = {'name': name,
-                        'size': [self.hazards_size, 1e-2],#self.hazards_size / 2],
-                        'pos': np.r_[self.layout[name], 2e-2],#self.hazards_size / 2 + 1e-2],
+                        'size': [self.hazards_size, 0.1],  # self.hazards_size / 2],
+                        'pos': np.r_[self.layout[name], 2e-2],  # self.hazards_size / 2 + 1e-2],
                         'rot': self.random_rot(),
                         'type': 'cylinder',
                         'contype': 0,
                         'conaffinity': 0,
                         'group': GROUP_HAZARD,
-                        'rgba': COLOR_HAZARD * [1, 1, 1, 0.25]} #0.1]}  # transparent
+                        'rgba': COLOR_HAZARD * [1, 1, 1, 0.25]}  # 0.1]}  # transparent
                 world_config['geoms'][name] = geom
         if self.pillars_num:
             for i in range(self.pillars_num):
@@ -766,7 +787,6 @@ class Engine(gym.Env, gym.utils.EzPickle):
                     'rgba': COLOR_CIRCLE * [1, 1, 1, 0.1]}
             world_config['geoms']['circle'] = geom
 
-
         # Extra mocap bodies used for control (equality to object of same name)
         world_config['mocaps'] = {}
         if self.gremlins_num:
@@ -779,7 +799,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                          'rot': self._gremlins_rots[i],
                          'group': GROUP_GREMLIN,
                          'rgba': np.array([1, 1, 1, .1]) * COLOR_GREMLIN}
-                         #'rgba': np.array([1, 1, 1, 0]) * COLOR_GREMLIN}
+                # 'rgba': np.array([1, 1, 1, 0]) * COLOR_GREMLIN}
                 world_config['mocaps'][name] = mocap
 
         return world_config
@@ -833,7 +853,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
             raise ResamplingError('Failed to generate goal')
         # Move goal geom to new layout position
         self.world_config_dict['geoms']['goal']['pos'][:2] = self.layout['goal']
-        #self.world.rebuild(deepcopy(self.world_config_dict))
+        # self.world.rebuild(deepcopy(self.world_config_dict))
         #self.update_viewer_sim = True
         goal_body_id = self.sim.model.body_name2id('goal')
         self.sim.model.body_pos[goal_body_id][:2] = self.layout['goal']
@@ -1122,7 +1142,6 @@ class Engine(gym.Env, gym.utils.EzPickle):
         assert self.observation_space.contains(obs), f'Bad obs {obs} {self.observation_space}'
         return obs
 
-
     def cost(self):
         ''' Calculate the current costs and return a dict '''
         self.sim.forward()  # Ensure positions and contacts are correct
@@ -1159,7 +1178,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
             cost['cost_vases_displace'] = 0
             for i in range(self.vases_num):
                 name = f'vase{i}'
-                dist = np.sqrt(np.sum(np.square(self.data.get_body_xpos(name)[:2] - self.reset_layout[name])))
+                dist = np.sqrt(
+                    np.sum(
+                        np.square(self.data.get_body_xpos(name)[: 2] - self.reset_layout[name])))
                 if dist > self.vases_displace_threshold:
                     cost['cost_vases_displace'] += dist * self.vases_displace_cost
 
@@ -1213,7 +1234,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
     def set_mocaps(self):
         ''' Set mocap object positions before a physics step is executed '''
-        if self.gremlins_num: # self.constrain_gremlins:
+        if self.gremlins_num:  # self.constrain_gremlins:
             phase = float(self.data.time)
             for i in range(self.gremlins_num):
                 name = f'gremlin{i}'
@@ -1244,7 +1265,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
         # Set action
         action_range = self.model.actuator_ctrlrange
         # action_scale = action_range[:,1] - action_range[:, 0]
-        self.data.ctrl[:] = np.clip(action, action_range[:,0], action_range[:,1]) #np.clip(action * 2 / action_scale, -1, 1)
+        # np.clip(action * 2 / action_scale, -1, 1)
+        self.data.ctrl[:] = np.clip(action, action_range[:, 0], action_range[:, 1])
         if self.action_noise:
             self.data.ctrl[:] += self.action_noise * self.rs.randn(self.model.nu)
 
@@ -1339,7 +1361,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
             x, y, _ = robot_com
             u, v, _ = robot_vel
             radius = np.sqrt(x**2 + y**2)
-            reward += (((-u*y + v*x)/radius)/(1 + np.abs(radius - self.circle_radius))) * self.reward_circle
+            reward += (((-u*y + v*x)/radius)/(1 + np.abs(radius - self.circle_radius))
+                       ) * self.reward_circle
         # Intrinsic reward for uprightness
         if self.reward_orientation:
             zalign = quat2zalign(self.data.get_body_xquat(self.reward_orientation_body))
@@ -1384,9 +1407,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
                                rgba=np.array(color) * 0.5,
                                label='')
 
-    def render_area(self, pos, size, color, label='', alpha=0.1):
+    def render_area(self, pos, size, color, label='', alpha=0.1, z_size=0.01):
         ''' Render a radial area in the environment '''
-        z_size = min(size, 0.3)
         pos = np.asarray(pos)
         if pos.shape == (2,):
             pos = np.r_[pos, 0]  # Z coordinate 0
@@ -1413,14 +1435,14 @@ class Engine(gym.Env, gym.utils.EzPickle):
             self.viewer.draw_pixels(self.save_obs_vision, 0, 0)
 
     def render(self,
-               mode='human', 
+               mode='human',
                camera_id=None,
                width=DEFAULT_WIDTH,
                height=DEFAULT_HEIGHT
                ):
         ''' Render the environment to the screen '''
 
-        if self.viewer is None or mode!=self._old_render_mode:
+        if self.viewer is None or mode != self._old_render_mode:
             # Set camera if specified
             if mode == 'human':
                 self.viewer = MjViewer(self.sim)
@@ -1429,8 +1451,21 @@ class Engine(gym.Env, gym.utils.EzPickle):
             else:
                 self.viewer = MjRenderContextOffscreen(self.sim)
                 self.viewer._hide_overlay = True
-                self.viewer.cam.fixedcamid = camera_id #self.model.camera_name2id(mode)
+                self.viewer.cam.fixedcamid = camera_id  # self.model.camera_name2id(mode)
                 self.viewer.cam.type = const.CAMERA_FIXED
+
+                # self.viewer.cam.trackbodyid = 0         # id of the body to track ()
+                # # how much you "zoom in", model.stat.extent is the max limits of the arena
+                # self.viewer.cam.distance = self.model.stat.extent * 2.0
+                # # self.viewer.cam.lookat[0] += 0.5
+                # # x,y,z offset from the object (works if trackbodyid=-1)
+                # self.viewer.cam.lookat[0] += 0.5
+                # self.viewer.cam.lookat[1] += 0.5
+                # self.viewer.cam.lookat[2] += 0.5
+                # # # camera rotation around the axis in the plane going through the frame origin (if 0 you just see a line)
+                # self.viewer.cam.elevation = -90
+                # self.viewer.cam.azimuth = 0              # camera rotation around the camera's vertical axis
+
             self.viewer.render_swap_callback = self.render_swap_callback
             # Turn all the geom groups on
             self.viewer.vopt.geomgroup[:] = 1
@@ -1494,9 +1529,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
             vision = np.array(vision, dtype='uint8')
             self.save_obs_vision = vision
 
-        if mode=='human':
+        if mode == 'human':
             self.viewer.render()
-        elif mode=='rgb_array':
+        elif mode == 'rgb_array':
             self.viewer.render(width, height)
             data = self.viewer.read_pixels(width, height, depth=False)
             self.viewer._markers[:] = []
